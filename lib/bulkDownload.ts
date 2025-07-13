@@ -20,23 +20,33 @@ export class BulkDownloadService {
       // Download and add each certificate to the ZIP
       const downloadPromises = certificates.map(async (certificate, index) => {
         try {
-          const pdfUrl = await CertificateService.getCertificatePdfUrl(certificate.certificateId)
+          let fileBlob: Blob
+          let filename: string
           
-          if (!pdfUrl) {
-            console.warn(`No PDF found for certificate: ${certificate.certificateId}`)
+          // Check if certificate has a stored download URL
+          if (certificate.download_storage_url) {
+            // Use the stored Firebase Storage URL
+            const response = await fetch(certificate.download_storage_url)
+            
+            if (!response.ok) {
+              throw new Error(`Failed to fetch certificate: ${response.statusText}`)
+            }
+            
+            fileBlob = await response.blob()
+            filename = certificate.download_file_name || `${certificate.certificateId}_${certificate.eventName.replace(/\s+/g, '_')}.png`
+            
+          } else {
+            // Fallback to generating a simple certificate
+            console.warn(`No stored download URL for certificate: ${certificate.certificateId}, generating simple certificate`)
+            
+            // For now, we'll skip certificates without stored URLs in bulk download
+            // to avoid generating them dynamically which could be slow
+            console.log(`Skipping certificate ${certificate.certificateId} - no stored URL available`)
             return null
           }
           
-          // Download the PDF
-          const response = await fetch(pdfUrl)
-          const pdfBlob = await response.blob()
-          
-          // Create filename
-          const eventSlug = certificate.eventName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
-          const filename = `${certificate.certificateId}_${eventSlug}.pdf`
-          
           // Add to ZIP
-          studentFolder.file(filename, pdfBlob)
+          studentFolder.file(filename, fileBlob)
           
           console.log(`✅ Added to ZIP: ${filename}`)
           return filename
@@ -52,7 +62,7 @@ export class BulkDownloadService {
       const successfulDownloads = results.filter(Boolean)
       
       if (successfulDownloads.length === 0) {
-        throw new Error('No certificates could be downloaded')
+        throw new Error('No certificates could be downloaded. Please ensure certificates have been generated and uploaded to Firebase Storage.')
       }
       
       // Generate and download the ZIP file

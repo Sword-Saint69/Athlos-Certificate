@@ -1,28 +1,19 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCl3EAP1gTi0m3HuelpCwd4bd9vigxMHsU",
-  authDomain: "cem-certificate.firebaseapp.com",
-  projectId: "cem-certificate",
-  storageBucket: "cem-certificate.firebasestorage.app",
-  messagingSenderId: "797787148412",
-  appId: "1:797787148412:web:5fc038ce44edac43d539f9",
-  measurementId: "G-Y792NZF0R0"
+  apiKey: "AIzaSyAHrvhT6GKehlEcxMx5IKGp9kKuyDimHbU",
+  authDomain: "athlos-25.firebaseapp.com",
+  projectId: "athlos-25",
+  storageBucket: "athlos-25.appspot.com", // <-- FIXED HERE
+  messagingSenderId: "1040745981700",
+  appId: "1:1040745981700:web:94c1b7d8fe52da723ad251",
+  measurementId: "G-S4TMQLBL2N"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Prevent re-initialization in Next.js hot reload
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore
 export const db = getFirestore(app);
-
-// Initialize Storage
-export const storage = getStorage(app);
-
-// Initialize Analytics (only in browser)
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
-
-export default app; 
+export const storage = getStorage(app); 

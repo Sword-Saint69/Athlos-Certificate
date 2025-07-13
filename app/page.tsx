@@ -35,9 +35,13 @@ export default function Component() {
     setCertificates([]) // Clear previous data
 
     try {
+      console.log(`Searching for certificates with university code: ${universityCode}`)
+      
       // Call Firebase API
       const response = await fetch(`/api/certificates?universityCode=${encodeURIComponent(universityCode)}`)
       const data = await response.json()
+
+      console.log('API Response:', data)
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -49,6 +53,15 @@ export default function Component() {
       }
 
       setCertificates(data.certificates)
+      
+      // Log certificate details for debugging
+      console.log(`Found ${data.certificates.length} certificates:`)
+      data.certificates.forEach((cert: any, index: number) => {
+        console.log(`${index + 1}. ${cert.name} - ${cert.universityCode}`)
+        console.log(`   Has download URL: ${!!cert.download_storage_url}`)
+        console.log(`   File name: ${cert.download_file_name || 'N/A'}`)
+        console.log(`   File size: ${cert.download_file_size || 'N/A'} bytes`)
+      })
       
       // Track search analytics
       analytics.trackSearch(universityCode, data.certificates.length, data.certificates.length > 0)
@@ -161,6 +174,23 @@ export default function Component() {
           </CardContent>
         </Card>
 
+        {/* Test button for development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-center mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setUniversityCode('TEST001')
+                handleSearch()
+              }}
+              className="text-xs"
+            >
+              Test Search (Development)
+            </Button>
+          </div>
+        )}
+
                 {error && (
           <div className="text-center max-w-md mt-4 space-y-4">
             <p className="text-destructive">{error}</p>
@@ -190,6 +220,26 @@ export default function Component() {
               <p className="text-muted-foreground font-slab">
                 {certificates[0].name} - {certificates[0].universityCode}
               </p>
+              
+              {/* Certificate status summary */}
+              <div className="mt-4 flex justify-center">
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600 dark:text-green-400">
+                      {certificates.filter(cert => cert.download_storage_url).length} High-quality certificates
+                    </span>
+                  </div>
+                  {certificates.filter(cert => !cert.download_storage_url).length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <span className="text-yellow-600 dark:text-yellow-400">
+                        {certificates.filter(cert => !cert.download_storage_url).length} Generated on-demand
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
               
               {/* Bulk download button */}
               {certificates.length > 1 && (

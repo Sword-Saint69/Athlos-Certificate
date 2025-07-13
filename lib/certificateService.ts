@@ -17,6 +17,30 @@ export interface CertificateData {
   certificate_id?: string;
   event_name?: string;
   organizer_name?: string;
+  // Download link fields from Firebase database
+  download_storage_url?: string;
+  download_storage_path?: string;
+  download_file_name?: string;
+  download_file_size?: number;
+  download_file_format?: string;
+  download_generated_at?: any;
+  download_count?: number;
+  download_links?: {
+    direct_url?: string;
+    search_url?: string;
+    token_url?: string;
+    api_url?: string;
+    generated_at?: any;
+    unique_token?: string;
+  };
+  certificate_metadata?: {
+    event_name?: string;
+    organizer_name?: string;
+    search_id?: string;
+    template_id?: string;
+    generated_timestamp?: number;
+    bulk_upload?: boolean;
+  };
   [key: string]: any; // Allow for additional dynamic fields
 }
 
@@ -46,6 +70,16 @@ export class CertificateService {
           pdfUrl: data.pdfUrl,
           // Map additional fields from your admin panel
           organizerName: data.organizer_name,
+          // Include download link fields
+          download_storage_url: data.download_storage_url,
+          download_storage_path: data.download_storage_path,
+          download_file_name: data.download_file_name,
+          download_file_size: data.download_file_size,
+          download_file_format: data.download_file_format,
+          download_generated_at: data.download_generated_at,
+          download_count: data.download_count,
+          download_links: data.download_links,
+          certificate_metadata: data.certificate_metadata,
           ...data // Include all other fields
         };
       }) as CertificateData[];
@@ -93,7 +127,63 @@ export class CertificateService {
   }
 
   /**
-   * Get PDF download URL for a certificate
+   * Download certificate using stored Firebase Storage URL
+   */
+  static async downloadCertificate(certificate: CertificateData): Promise<void> {
+    try {
+      // Check if we have a stored download URL
+      if (certificate.download_storage_url) {
+        // Use the stored Firebase Storage URL
+        await this.downloadFromStorageUrl(certificate.download_storage_url, certificate.download_file_name || `${certificate.name}_${certificate.eventName}.png`);
+      } else {
+        // Fallback to generating a simple certificate if no stored URL
+        console.warn('No stored download URL found, generating simple certificate');
+        await this.generateSimpleCertificate(certificate.certificateId, `${certificate.name}_${certificate.eventName}.pdf`);
+      }
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      throw new Error('Failed to download certificate');
+    }
+  }
+
+  /**
+   * Download certificate from Firebase Storage URL
+   */
+  static async downloadFromStorageUrl(storageUrl: string, fileName: string): Promise<void> {
+    try {
+      // Fetch the file from Firebase Storage
+      const response = await fetch(storageUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch certificate: ${response.statusText}`);
+      }
+      
+      // Get the blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`Certificate downloaded successfully: ${fileName}`);
+    } catch (error) {
+      console.error('Error downloading from storage URL:', error);
+      throw new Error('Failed to download certificate from storage');
+    }
+  }
+
+  /**
+   * Get PDF download URL for a certificate (legacy method)
    */
   static async getCertificatePdfUrl(certificateId: string): Promise<string | null> {
     try {
@@ -107,13 +197,18 @@ export class CertificateService {
   }
 
   /**
-   * Download certificate PDF
+   * Download certificate PDF (legacy method - now uses downloadCertificate)
    */
   static async downloadCertificatePdf(certificateId: string, fileName: string): Promise<void> {
     try {
-      // Always generate certificates dynamically for now
-      // This avoids CORS issues with Firebase Storage
-      await this.generateSimpleCertificate(certificateId, fileName);
+      // Get certificate data first
+      const certificate = await this.getCertificateById(certificateId);
+      if (!certificate) {
+        throw new Error('Certificate not found');
+      }
+      
+      // Use the new download method
+      await this.downloadCertificate(certificate);
     } catch (error) {
       console.error('Error downloading certificate:', error);
       throw new Error('Failed to generate certificate');

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, Loader2 } from "lucide-react"
+import { Download, Loader2, ExternalLink } from "lucide-react"
 import { CertificateData } from "@/lib/certificateService"
 import { CertificateService } from "@/lib/certificateService"
 
@@ -58,16 +58,17 @@ export function CertificateCard({
   const handleDownload = async () => {
     onDownloadStart()
     try {
-      await CertificateService.downloadCertificatePdf(
-        certificate.certificateId,
-        `${certificate.name}_${certificate.eventName.replace(/\s+/g, '_')}.pdf`
-      )
+      // Use the new download method that uses stored Firebase Storage URL
+      await CertificateService.downloadCertificate(certificate)
     } catch (error) {
       console.error('Download failed:', error)
     } finally {
       onDownloadEnd()
     }
   }
+
+  // Check if certificate has a stored download URL
+  const hasStoredCertificate = certificate.download_storage_url
 
   return (
     <Card 
@@ -115,7 +116,28 @@ export function CertificateCard({
             <p className="font-semibold text-muted-foreground">Department:</p>
             <p className="text-foreground font-medium">{certificate.department || "Not specified"}</p>
           </div>
+          {certificate.organizerName && (
+            <div>
+              <p className="font-semibold text-muted-foreground">Organizer:</p>
+              <p className="text-foreground font-medium">{certificate.organizerName}</p>
+            </div>
+          )}
+          {certificate.download_file_size && (
+            <div>
+              <p className="font-semibold text-muted-foreground">File Size:</p>
+              <p className="text-foreground font-medium">{(certificate.download_file_size / 1024).toFixed(1)} KB</p>
+            </div>
+          )}
         </div>
+        
+        {/* Certificate status indicator */}
+        {hasStoredCertificate && (
+          <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>High-quality certificate available</span>
+          </div>
+        )}
+        
         <div className="flex justify-center pt-4">
           <Button 
             className="w-full gap-2 min-h-[44px] touch-manipulation"
@@ -125,10 +147,12 @@ export function CertificateCard({
           >
             {isDownloading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
+            ) : hasStoredCertificate ? (
               <Download className="h-5 w-5" />
+            ) : (
+              <ExternalLink className="h-5 w-5" />
             )}
-            {isDownloading ? 'Downloading...' : 'Download Certificate'}
+            {isDownloading ? 'Downloading...' : hasStoredCertificate ? 'Download Certificate' : 'Generate Certificate'}
           </Button>
         </div>
         
