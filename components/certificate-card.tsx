@@ -5,22 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Download, Loader2, ExternalLink } from "lucide-react"
 import { CertificateData } from "@/lib/certificateService"
-import { CertificateService } from "@/lib/certificateService"
 
 interface CertificateCardProps {
   certificate: CertificateData
   index: number
-  onDownloadStart: () => void
-  onDownloadEnd: () => void
-  isDownloading: boolean
 }
 
 export function CertificateCard({ 
   certificate, 
-  index, 
-  onDownloadStart, 
-  onDownloadEnd, 
-  isDownloading 
+  index
 }: CertificateCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [touchStart, setTouchStart] = useState(0)
@@ -44,8 +37,10 @@ export function CertificateCard({
     const isRightSwipe = distance < -50
 
     if (isLeftSwipe) {
-      // Swipe left - could trigger download
-      handleDownload()
+      // Swipe left - trigger download
+      if (certificate.download_storage_url) {
+        window.open(certificate.download_storage_url, '_blank', 'noopener,noreferrer')
+      }
     } else if (isRightSwipe) {
       // Swipe right - could trigger share
       console.log('Share certificate')
@@ -56,14 +51,9 @@ export function CertificateCard({
   }
 
   const handleDownload = async () => {
-    onDownloadStart()
-    try {
-      // Use the new download method that uses stored Firebase Storage URL
-      await CertificateService.downloadCertificate(certificate)
-    } catch (error) {
-      console.error('Download failed:', error)
-    } finally {
-      onDownloadEnd()
+    // Open the Firebase Storage URL directly in a new tab
+    if (certificate.download_storage_url) {
+      window.open(certificate.download_storage_url, '_blank', 'noopener,noreferrer')
     }
   }
 
@@ -139,21 +129,24 @@ export function CertificateCard({
         )}
         
         <div className="flex justify-center pt-4">
-          <Button 
-            className="w-full gap-2 min-h-[44px] touch-manipulation"
-            onClick={handleDownload}
-            disabled={isDownloading}
-            size="lg"
-          >
-            {isDownloading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : hasStoredCertificate ? (
+          {certificate.download_storage_url ? (
+            <a
+              href={certificate.download_storage_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full"
+            >
+              <Button className="w-full gap-2 min-h-[44px] touch-manipulation" size="lg">
+                <Download className="h-5 w-5" />
+                Download Certificate
+              </Button>
+            </a>
+          ) : (
+            <Button disabled className="w-full gap-2 min-h-[44px] touch-manipulation" size="lg">
               <Download className="h-5 w-5" />
-            ) : (
-              <ExternalLink className="h-5 w-5" />
-            )}
-            {isDownloading ? 'Downloading...' : hasStoredCertificate ? 'Download Certificate' : 'Generate Certificate'}
-          </Button>
+              Download Unavailable
+            </Button>
+          )}
         </div>
         
         {/* Mobile swipe hint */}

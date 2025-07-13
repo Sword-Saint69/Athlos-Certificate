@@ -17,7 +17,7 @@ export default function Component() {
   const [universityCode, setUniversityCode] = useState("")
   const [certificates, setCertificates] = useState<CertificateData[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [isDownloading, setIsDownloading] = useState(false)
+
   const [isBulkDownloading, setIsBulkDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([])
@@ -267,9 +267,6 @@ export default function Component() {
                   key={certificate.id}
                   certificate={certificate}
                   index={index}
-                  onDownloadStart={() => setIsDownloading(true)}
-                  onDownloadEnd={() => setIsDownloading(false)}
-                  isDownloading={isDownloading}
                 />
               ))}
             </div>

@@ -6,7 +6,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAHrvhT6GKehlEcxMx5IKGp9kKuyDimHbU",
   authDomain: "athlos-25.firebaseapp.com",
   projectId: "athlos-25",
-  storageBucket: "athlos-25.appspot.com", // <-- FIXED HERE
+  storageBucket: "athlos-25.firebasestorage.app",
   messagingSenderId: "1040745981700",
   appId: "1:1040745981700:web:94c1b7d8fe52da723ad251",
   measurementId: "G-S4TMQLBL2N"
